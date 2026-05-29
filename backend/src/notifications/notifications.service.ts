@@ -69,6 +69,18 @@ export class NotificationsService {
     return { updated: result.affected ?? 0 };
   }
 
+  async markMultipleAsRead(
+    userId: string,
+    notificationIds: string[],
+  ): Promise<{ updated: number }> {
+    const result = await this.notificationsRepository.update(
+      { user_id: userId, id: notificationIds },
+      { is_read: true },
+    );
+
+    return { updated: result.affected ?? 0 };
+  }
+
   async remove(id: string, userId: string): Promise<void> {
     const notification = await this.notificationsRepository.findOne({
       where: { id, user_id: userId },
