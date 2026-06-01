@@ -7,9 +7,9 @@ In addition to regular global markets, **any user can easily create their own cu
 
 By fusing traditional prediction markets with gamified competition, and powering it all with Stellar's enterprise-grade infrastructure, InsightArena creates an engaging, transparent, and trust-minimized ecosystem where users can test their insights, host private challenges, compete globally, and earn rewards based on their accuracy.
 
-## 🤖 InsightArena AI Agent
+## InsightArena AI Agent
 
-InsightArena is not just a prediction market — it is an **AI-native platform** built on the **[Stellar network](https://stellar.org/)**. At its core sits an autonomous, always-on AI Agent that keeps the platform self-running, self-validating, and self-improving. The agent acts as a **Prediction Analyst** — generating confidence-scored AI picks for every match and competing on the leaderboard alongside real users; an **Autonomous Market Creator** — pulling live fixtures from the sports oracle every hour and auto-populating fresh markets daily with zero admin effort; an **Oracle Validator** — cross-checking results across two independent data sources before writing verified outcomes to Soroban smart contracts on Stellar for trustless, tamper-proof settlement; and a **Leaderboard Coach** — analysing each user's prediction history to deliver personalised insights that drive retention and keep users climbing the ranks. Beyond platform-wide markets, the agent also acts as a **personal assistant for creators** — when any user sets up their own custom event or private leaderboard, the AI recommends optimal match selections, suggests prediction deadlines based on fixture schedules, and helps structure competitions that maximise participation. Together, these capabilities position InsightArena at the forefront of the **AI × DeFi** wave, delivering an ecosystem that learns, adapts, and operates autonomously — powered entirely by Stellar's lightning-fast, near-zero-cost infrastructure.
+InsightArena is also an **AI-native platform** built on the **[Stellar network](https://stellar.org/)**. An autonomous AI Agent runs 24/7 as a **Prediction Analyst** (generating AI picks and competing on the leaderboard), **Market Creator** (auto-populating daily fixtures from the sports oracle), **Oracle Validator** (cross-checking results from two sources before settling on-chain via Soroban), **Leaderboard Coach** (delivering personalised insights to every user), and a **Creator Assistant** — helping anyone who builds a custom event pick the best matches, set deadlines, and structure competitions for maximum engagement.
 
 
 
@@ -120,17 +120,6 @@ make test    # run unit tests
 - Frontend: [frontend/CONTRIBUTING.md](frontend/CONTRIBUTING.md)
 - Root guide: [CONTRIBUTING.md](CONTRIBUTING.md)
 
-## Community
-
-Join our community:
-- **Telegram**: https://t.me/+hR9dZKau8f84YTk0
-- **Twitter**: https://twitter.com/InsightArena
-- **Discord**: https://discord.gg/InsightArena
-- **GitHub Issues**: https://github.com/Arena1X/InsightArena/issues
-
-## License
-
-MIT
 
 ---
 
