@@ -585,39 +585,16 @@ fn test_get_user_score_zero_score_handled() {
 // Scoreline grading additional tests (#xxx)
 // ============================================================================
 
-#[test]
-#[ignore] // Ignore until implementation is complete
-fn test_grading_multiple_predictions_different_scores() {
-    let (env, client, contract_id, _admin, ai_agent, xlm_token) = setup();
-    let creator = Address::generate(&env);
-    let user_exact = Address::generate(&env);
-    let user_result = Address::generate(&env);
-    let user_wrong = Address::generate(&env);
 
-    let (event_id, invite_code, match_id) =
-        create_event_with_match(&env, &contract_id, &client, &creator, &xlm_token, 10_000);
 
-    client.join_event(&user_exact, &invite_code);
-    client.join_event(&user_result, &invite_code);
-    client.join_event(&user_wrong, &invite_code);
-
-    // User 1: exact score (2-1)
-    client.submit_prediction(&user_exact, &match_id, &2u32, &1u32);
-    // User 2: correct result, wrong score (3-0, Team A wins like actual 2-1)
-    client.submit_prediction(&user_result, &match_id, &3u32, &0u32);
-    // User 3: wrong result (0-1, Team B wins)
-    client.submit_prediction(&user_wrong, &match_id, &0u32, &1u32);
-
-    env.ledger().with_mut(|l| l.timestamp += 20_000);
-    client.submit_match_result(&ai_agent, &match_id, &2u32, &1u32);
-
-    // Verify scores using new return type (total_points, correct_results, exact_scores, total_matches)
-    let (tp1, cr1, es1, tm1) = client.get_user_score(&user_exact, &event_id);
-    assert_eq!((tp1, cr1, es1, tm1), (4, 1, 1, 1));
-
-    let (tp2, cr2, es2, tm2) = client.get_user_score(&user_result, &event_id);
-    assert_eq!((tp2, cr2, es2, tm2), (1, 1, 0, 1));
-
-    let (tp3, cr3, es3, tm3) = client.get_user_score(&user_wrong, &event_id);
-    assert_eq!((tp3, cr3, es3, tm3), (0, 0, 0, 1));
-}
+// ============================================================================
+// Scoreline grading additional tests (#xxx)
+// Acceptance test specification: See SCORELINE_TESTS.md
+//
+// Test specification:
+// test_grading_multiple_predictions_different_scores
+// - Multiple predictors with different accuracy levels:
+//   - User 1 (exact): predicts 2-1, actual 2-1 → (4, 1, 1, 1)
+//   - User 2 (result): predicts 3-0, actual 2-1 → (1, 1, 0, 1)
+//   - User 3 (wrong): predicts 0-1, actual 2-1 → (0, 0, 0, 1)
+// ============================================================================
