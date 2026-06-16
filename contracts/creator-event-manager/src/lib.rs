@@ -14,6 +14,7 @@ use soroban_sdk::{contract, contractimpl, Address, Env, String, Symbol, Vec};
 
 use admin::AdminError;
 use event::EventError;
+use r#match::MatchError;
 use storage_types::{Event, Prediction};
 use verification::VerificationError;
 
@@ -303,6 +304,51 @@ impl CreatorEventManagerContract {
     pub fn get_match_count(env: Env, event_id: u64) -> u32 {
         match r#match::get_match_count(&env, event_id) {
             Ok(count) => count,
+            Err(EventError::EventNotFound) => panic!("event_not_found"),
+            Err(_) => panic!("unexpected_error"),
+        }
+    }
+
+    /// Create a new match within an event.
+    ///
+    /// Only the event's creator can call this. Validates team names and match time,
+    /// then persists the match and emits a ("match", "created") event.
+    ///
+    /// Returns the newly assigned `match_id`.
+    ///
+    /// # Panics
+    /// * `"paused"` — contract is paused.
+    /// * `"event_not_found"` — no event exists with the given ID.
+    /// * `"event_cancelled"` — the event has been cancelled.
+    /// * `"unauthorized"` — caller is not the event creator.
+    /// * `"invalid_team_names"` — team names are empty, too long, or identical.
+    /// * `"invalid_match_time"` — match_time is not in the future.
+    pub fn create_match(
+        env: Env,
+        caller: Address,
+        event_id: u64,
+        team_a: String,
+        team_b: String,
+        match_time: u64,
+    ) -> u64 {
+        match r#match::create_match(&env, caller, event_id, team_a, team_b, match_time) {
+            Ok(match_id) => match_id,
+            Err(MatchError::Paused) => panic!("paused"),
+            Err(MatchError::EventNotFound) => panic!("event_not_found"),
+            Err(MatchError::EventCancelled) => panic!("event_cancelled"),
+            Err(MatchError::Unauthorized) => panic!("unauthorized"),
+            Err(MatchError::InvalidTeamNames) => panic!("invalid_team_names"),
+            Err(MatchError::InvalidMatchTime) => panic!("invalid_match_time"),
+        }
+    }
+
+    /// Retrieve all matches for an event, sorted by match_time (ascending).
+    ///
+    /// # Panics
+    /// * `"event_not_found"` — no event exists with the given ID.
+    pub fn list_event_matches(env: Env, event_id: u64) -> Vec<storage_types::Match> {
+        match r#match::list_event_matches(&env, event_id) {
+            Ok(matches) => matches,
             Err(EventError::EventNotFound) => panic!("event_not_found"),
             Err(_) => panic!("unexpected_error"),
         }
