@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, Repository } from 'typeorm';
+import { Brackets, In, Repository } from 'typeorm';
 import {
   ContractService,
   ContractEvent,
@@ -9,6 +9,9 @@ import {
   ContractMatch,
 } from '../contract/contract.service';
 import { CreatorEvent } from '../matches/entities/creator-event.entity';
+import { Match } from '../matches/entities/match.entity';
+import { MatchPrediction } from '../matches/entities/match-prediction.entity';
+import { User } from '../users/entities/user.entity';
 import {
   EventByCodeResponseDto,
   MatchPreviewDto,
@@ -74,6 +77,12 @@ export class CreatorEventsService {
     private readonly contractService: ContractService,
     @InjectRepository(CreatorEvent)
     private readonly creatorEventRepository: Repository<CreatorEvent>,
+    @InjectRepository(Match)
+    private readonly matchRepository: Repository<Match>,
+    @InjectRepository(MatchPrediction)
+    private readonly matchPredictionRepository: Repository<MatchPrediction>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
   ) {}
 
   async searchEvents(
@@ -519,6 +528,28 @@ export class CreatorEventsService {
       incorrectPredictions === 0 &&
       pendingPredictions === 0;
 
+    let totalPoints = 0;
+    const userEntity = await this.userRepository.findOne({
+      where: { stellar_address: address },
+    });
+    if (userEntity && matches.length > 0) {
+      const dbMatches = await this.matchRepository.find({
+        where: { event: { on_chain_event_id: Number(eventId) } },
+      });
+      if (dbMatches.length > 0) {
+        const dbPredictions = await this.matchPredictionRepository.find({
+          where: {
+            user: { id: userEntity.id },
+            match: { id: In(dbMatches.map((m) => m.id)) },
+          },
+        });
+        totalPoints = dbPredictions.reduce(
+          (sum, p) => sum + p.points_earned,
+          0,
+        );
+      }
+    }
+
     return {
       address,
       totalMatches: matches.length,
@@ -529,6 +560,7 @@ export class CreatorEventsService {
       accuracyPercentage,
       rank,
       isWinner,
+      totalPoints,
     };
   }
 

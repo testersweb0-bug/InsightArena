@@ -376,6 +376,8 @@ export class IndexerService implements OnModuleInit {
           event_id: this.readBigInt(base, 'event_id'),
           predictor: this.readStr(base, 'predictor'),
           predicted_outcome: this.readStr(base, 'predicted_outcome'),
+          predicted_home_score: this.readNum(base, 'predicted_home_score'),
+          predicted_away_score: this.readNum(base, 'predicted_away_score'),
           predicted_at: this.readNum(base, 'predicted_at'),
         };
       case 'MatchResultSubmitted':
@@ -648,9 +650,8 @@ export class IndexerService implements OnModuleInit {
   ): Promise<void> {
     const matchId = Number(data.match_id);
     const predictorAddress = this.readStr(data, 'predictor');
-    const predictedOutcome = this.readStr(data, 'predicted_outcome');
 
-    if (!matchId || !predictorAddress || !predictedOutcome) {
+    if (!matchId || !predictorAddress) {
       this.logger.warn('PredictionSubmitted skipped: missing data');
       return;
     }
@@ -676,18 +677,6 @@ export class IndexerService implements OnModuleInit {
       return;
     }
 
-    const normalizedOutcome = predictedOutcome.toUpperCase();
-    if (
-      ![PredictedOutcome.TEAM_A, PredictedOutcome.TEAM_B, PredictedOutcome.DRAW]
-        .map((o) => o.toString())
-        .includes(normalizedOutcome)
-    ) {
-      this.logger.warn(
-        `PredictionSubmitted skipped: invalid outcome ${predictedOutcome}`,
-      );
-      return;
-    }
-
     const existing = await this.matchPredictionRepository.findOne({
       where: {
         match: { id: match.id },
@@ -696,10 +685,57 @@ export class IndexerService implements OnModuleInit {
     });
     if (existing) return;
 
+    const predictedHomeScore =
+      data.predicted_home_score !== undefined && data.predicted_home_score !== null
+        ? Number(data.predicted_home_score)
+        : null;
+    const predictedAwayScore =
+      data.predicted_away_score !== undefined && data.predicted_away_score !== null
+        ? Number(data.predicted_away_score)
+        : null;
+
+    let predictedOutcome: PredictedOutcome;
+    if (predictedHomeScore !== null && predictedAwayScore !== null) {
+      if (predictedHomeScore > predictedAwayScore) {
+        predictedOutcome = PredictedOutcome.TEAM_A;
+      } else if (predictedHomeScore < predictedAwayScore) {
+        predictedOutcome = PredictedOutcome.TEAM_B;
+      } else {
+        predictedOutcome = PredictedOutcome.DRAW;
+      }
+    } else {
+      const rawOutcome = this.readStr(data, 'predicted_outcome');
+      if (!rawOutcome) {
+        this.logger.warn(
+          'PredictionSubmitted skipped: no scoreline or predicted_outcome',
+        );
+        return;
+      }
+      const normalizedOutcome = rawOutcome.toUpperCase();
+      if (
+        ![
+          PredictedOutcome.TEAM_A,
+          PredictedOutcome.TEAM_B,
+          PredictedOutcome.DRAW,
+        ]
+          .map((o) => o.toString())
+          .includes(normalizedOutcome)
+      ) {
+        this.logger.warn(
+          `PredictionSubmitted skipped: invalid outcome ${rawOutcome}`,
+        );
+        return;
+      }
+      predictedOutcome = normalizedOutcome as PredictedOutcome;
+    }
+
     const prediction = this.matchPredictionRepository.create({
       match,
       user,
-      predicted_outcome: normalizedOutcome as PredictedOutcome,
+      predicted_outcome: predictedOutcome,
+      predicted_home_score: predictedHomeScore,
+      predicted_away_score: predictedAwayScore,
+      points_earned: 0,
       is_correct: null,
     });
 
@@ -762,7 +798,7 @@ export class IndexerService implements OnModuleInit {
 
     await this.matchRepository.save(match);
 
-    await this.gradePredictions(match.id, winningTeam);
+    await this.gradePredictions(match);
     this.logger.log(
       `Indexed MatchResultSubmitted: match=${matchId} winner=${winningTeam}`,
     );
@@ -772,17 +808,47 @@ export class IndexerService implements OnModuleInit {
     this.broadcasterService.broadcastMatchResolved(data);
   }
 
-  private async gradePredictions(
-    matchId: string,
-    winningTeam: WinningTeam,
-  ): Promise<void> {
+  private async gradePredictions(match: Match): Promise<void> {
     const predictions = await this.matchPredictionRepository.find({
-      where: { match: { id: matchId } },
+      where: { match: { id: match.id } },
     });
 
+    const { home_score, away_score, winning_team, points_multiplier } = match;
+
     for (const prediction of predictions) {
-      prediction.is_correct =
-        String(prediction.predicted_outcome) === String(winningTeam);
+      const outcomeCorrect =
+        String(prediction.predicted_outcome) === String(winning_team);
+      prediction.is_correct = outcomeCorrect;
+
+      if (!outcomeCorrect) {
+        prediction.points_earned = 0;
+        continue;
+      }
+
+      if (
+        home_score !== null &&
+        away_score !== null &&
+        prediction.predicted_home_score !== null &&
+        prediction.predicted_away_score !== null
+      ) {
+        const exactScore =
+          prediction.predicted_home_score === home_score &&
+          prediction.predicted_away_score === away_score;
+
+        const goalDiffCorrect =
+          prediction.predicted_home_score - prediction.predicted_away_score ===
+          home_score - away_score;
+
+        if (exactScore) {
+          prediction.points_earned = 4 * points_multiplier;
+        } else if (goalDiffCorrect) {
+          prediction.points_earned = 3 * points_multiplier;
+        } else {
+          prediction.points_earned = 1 * points_multiplier;
+        }
+      } else {
+        prediction.points_earned = 1 * points_multiplier;
+      }
     }
 
     if (predictions.length > 0) {
