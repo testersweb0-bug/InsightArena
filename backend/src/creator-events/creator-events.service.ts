@@ -50,7 +50,7 @@ import {
   PayoutsQueryDto,
   PaginatedPayoutsDto,
   PayoutEntryDto,
-} from './dto/payouts-query.dto';
+} from './dto/payouts.dto';
 import {
   normalizeContractPrediction,
   resolveCorrectness,
