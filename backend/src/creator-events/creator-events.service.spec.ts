@@ -3,6 +3,9 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { ContractService } from '../contract/contract.service';
 import { CreatorEvent } from '../matches/entities/creator-event.entity';
+import { Match } from '../matches/entities/match.entity';
+import { MatchPrediction } from '../matches/entities/match-prediction.entity';
+import { User } from '../users/entities/user.entity';
 import { CreatorEventsService } from './creator-events.service';
 import { CreatorEventSearchStatus } from './dto/search-events-query.dto';
 
@@ -88,6 +91,18 @@ describe('CreatorEventsService searchEvents', () => {
         {
           provide: getRepositoryToken(CreatorEvent),
           useValue: creatorEventRepository,
+        },
+        {
+          provide: getRepositoryToken(Match),
+          useValue: {},
+        },
+        {
+          provide: getRepositoryToken(MatchPrediction),
+          useValue: {},
+        },
+        {
+          provide: getRepositoryToken(User),
+          useValue: {},
         },
       ],
     }).compile();
